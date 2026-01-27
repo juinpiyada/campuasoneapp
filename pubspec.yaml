@@ -1,0 +1,49 @@
+name: campus_app
+description: "A new Flutter project."
+publish_to: "none"
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  http: ^1.6.0
+  shared_preferences: ^2.5.4
+  url_launcher: ^6.3.1
+  flutter_dotenv: ^5.1.0
+
+  # ✅ File picker (keep ONLY one)
+  file_picker: ^8.1.4
+
+  # ✅ Convert text to PDF
+  pdf: ^3.11.1
+  printing: ^5.13.4
+  path_provider: ^2.1.5
+
+  # ✅ Open files (PDF etc.)
+  open_filex: ^4.6.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+dependency_overrides:
+  characters: ^1.4.1
+  matcher: ^0.12.18
+  material_color_utilities: ^0.13.0
+  test_api: ^0.7.8
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - lib/img/logo.png
+    - lib/img/error.gif
+    - lib/img/nointernet.gif
+    - lib/.env
