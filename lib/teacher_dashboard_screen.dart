@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:async';
 
+import 'package:campus_app/login_page.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -81,15 +82,10 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
       duration: const Duration(milliseconds: 300),
     );
 
-    _menuSlide = Tween<Offset>(
-      begin: const Offset(-1.0, 0.0),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _menuController,
-        curve: Curves.easeOutCubic,
-      ),
-    );
+    _menuSlide = Tween<Offset>(begin: const Offset(-1.0, 0.0), end: Offset.zero)
+        .animate(
+          CurvedAnimation(parent: _menuController, curve: Curves.easeOutCubic),
+        );
 
     // Fetch teacher-specific data
     Future.microtask(() async {
@@ -136,12 +132,14 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
     });
 
     try {
-      final uri = Uri.parse('YOUR_API_URL/courses-count'); // Replace with the real API
+      final uri = Uri.parse(
+        'YOUR_API_URL/courses-count',
+      ); // Replace with the real API
       final headers = await _authHeaders();
 
-      final resp = await http.get(uri, headers: headers).timeout(
-            const Duration(seconds: 20),
-          );
+      final resp = await http
+          .get(uri, headers: headers)
+          .timeout(const Duration(seconds: 20));
 
       if (resp.statusCode == 200) {
         final decoded = jsonDecode(resp.body);
@@ -196,6 +194,77 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
       body: SafeArea(
         child: Stack(
           children: [
+            // ================= SIDE MENU =================
+            // Dark background overlay
+            GestureDetector(
+              onTap: _isMenuOpen ? _toggleMenu : null,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                color: _isMenuOpen
+                    ? Colors.black.withOpacity(0.5)
+                    : Colors.transparent,
+              ),
+            ),
+            // Slide-out Menu
+            SlideTransition(
+              position: _menuSlide,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Container(
+                  width: 280,
+                  height: double.infinity,
+                  color: Colors.white,
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 60),
+                      CircleAvatar(
+                        radius: 35,
+                        backgroundColor: primaryColor.withOpacity(0.1),
+                        child: Icon(
+                          Icons.person,
+                          size: 40,
+                          color: primaryColor,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        widget.username,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        widget.roleDescription,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                      const Divider(height: 32),
+                      _buildMenuItem(Icons.dashboard_rounded, 'Dashboard'),
+                      _buildMenuItem(Icons.class_rounded, 'My Courses'),
+                      _buildMenuItem(Icons.people_rounded, 'Students'),
+                      _buildMenuItem(Icons.settings_rounded, 'Settings'),
+                      const Spacer(),
+                      ListTile(
+                        leading: const Icon(
+                          Icons.logout_rounded,
+                          color: Colors.red,
+                        ),
+                        title: const Text(
+                          'Logout',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                        onTap: _logout,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
             // ================= MAIN CONTENT =================
             Column(
               children: [
@@ -275,7 +344,9 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
                       opacity: _fadeCards,
                       child: SingleChildScrollView(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 8),
+                          horizontal: 20,
+                          vertical: 8,
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -296,11 +367,14 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
                                         width: 16,
                                         height: 16,
                                         child: CircularProgressIndicator(
-                                            strokeWidth: 2),
+                                          strokeWidth: 2,
+                                        ),
                                       ),
                                       SizedBox(width: 8),
-                                      Text('Loading...',
-                                          style: TextStyle(fontSize: 12)),
+                                      Text(
+                                        'Loading...',
+                                        style: TextStyle(fontSize: 12),
+                                      ),
                                     ],
                                   ),
                               ],
@@ -315,7 +389,8 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
                                   color: Colors.red.withOpacity(0.06),
                                   borderRadius: BorderRadius.circular(14),
                                   border: Border.all(
-                                      color: Colors.red.withOpacity(0.25)),
+                                    color: Colors.red.withOpacity(0.25),
+                                  ),
                                 ),
                                 child: Text(
                                   _error!,
@@ -389,6 +464,17 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
     );
   }
 
+  Widget _buildMenuItem(IconData icon, String title) {
+    return ListTile(
+      leading: Icon(icon, color: Colors.grey.shade700),
+      title: Text(title),
+      onTap: () {
+        // Add navigation logic here
+        _toggleMenu();
+      },
+    );
+  }
+
   Widget _buildStatCard({
     required IconData icon,
     required String title,
@@ -425,8 +511,11 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
                 child: Icon(icon, color: color, size: 22),
               ),
               const Spacer(),
-              Icon(Icons.more_horiz_rounded,
-                  color: Colors.grey.shade400, size: 20),
+              Icon(
+                Icons.more_horiz_rounded,
+                color: Colors.grey.shade400,
+                size: 20,
+              ),
             ],
           ),
           const SizedBox(height: 10),
@@ -441,18 +530,12 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
           const SizedBox(height: 4),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 19,
-              fontWeight: FontWeight.w700,
-            ),
+            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 4),
           Text(
             subtitle,
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
           ),
         ],
       ),
@@ -504,15 +587,15 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
   }
 
   Widget _skeletonBox({double? w, double? h, BorderRadius? br}) {
-    return FadeTransition(
-      opacity: _shimmerAnim,
-      child: Container(
-        width: w,
-        height: h,
-        decoration: BoxDecoration(
-          color: Colors.grey.shade200,
-          borderRadius: br ?? BorderRadius.circular(14),
-        ),
+    // FIX: Removed FadeTransition referencing undefined _shimmerAnim
+    // Since the skeleton is already inside the _fadeCards animation in the build method,
+    // it will still fade in smoothly.
+    return Container(
+      width: w,
+      height: h,
+      decoration: BoxDecoration(
+        color: Colors.grey.shade200,
+        borderRadius: br ?? BorderRadius.circular(14),
       ),
     );
   }
