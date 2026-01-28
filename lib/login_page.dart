@@ -10,6 +10,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'admin_dashboard.dart';
 import 'student_dashboard.dart';
 import 'finance_dashboard.dart'; // ✅ ADDED
+import 'teacher_dashboard_screen.dart'; // ✅ ADDED
 
 /// ----------------- ENV + API CONFIG -----------------
 class AppConfig {
@@ -35,7 +36,6 @@ class Api {
   static String? get chartData => null;
 }
 
-/// Super admin
 const String superAdminUser = 'super_user@gmail.com';
 
 /// ---------------- small helpers (React-like) ----------------
@@ -236,6 +236,19 @@ class _LoginPageState extends State<LoginPage>
           return;
         }
 
+        // Check if the role is for a teacher
+        if (roleSet.contains('teacher')) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => TeacherDashboardScreen(
+                username: userid,
+                roleDescription: roleDesc,
+              ),
+            ),
+          );
+          return;
+        }
+
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
             builder: (_) => LoginSuccessScreen(
@@ -295,7 +308,8 @@ class _LoginPageState extends State<LoginPage>
             '').toString();
 
         final roleDesc =
-            (pick([data['role_description'], data['user_role'], 'User']) ?? 'User')
+            (pick([data['role_description'], data['user_role'], 'User']) ??
+                    'User')
                 .toString();
 
         final roleSet = _buildRoleSet(data);
@@ -419,6 +433,11 @@ class _LoginPageState extends State<LoginPage>
             username: normalizedUserId,
             roleDescription: roleDesc,
           );
+        } else if (roleSet.contains('teacher')) {
+          targetScreen = TeacherDashboardScreen(
+            username: normalizedUserId,
+            roleDescription: roleDesc,
+          );
         } else {
           targetScreen = LoginSuccessScreen(
             roleDescription: roleDesc,
@@ -436,10 +455,7 @@ class _LoginPageState extends State<LoginPage>
               return FadeTransition(
                 opacity: curved,
                 child: SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(0, 0.04),
-                    end: Offset.zero,
-                  ).animate(curved),
+                  position: Tween<Offset>(begin: const Offset(0, 0.04), end: Offset.zero).animate(curved),
                   child: child,
                 ),
               );
@@ -687,9 +703,7 @@ class _LoginPageState extends State<LoginPage>
                                       height: 22,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
-                                        valueColor: AlwaysStoppedAnimation<Color>(
-                                          Colors.white,
-                                        ),
+                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                                       ),
                                     )
                                   : const Text(
