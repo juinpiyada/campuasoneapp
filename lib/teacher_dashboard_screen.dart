@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'dart:async';
 
-import 'package:campus_app/login_page.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'login_page.dart'; // Ensure that the import is correct.
 
 class TeacherDashboardScreen extends StatefulWidget {
   final String username;
@@ -22,24 +22,20 @@ class TeacherDashboardScreen extends StatefulWidget {
 
 class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
     with TickerProviderStateMixin {
-  // Main page animations
   late final AnimationController _controller;
   late final Animation<double> _fadeHeader;
   late final Animation<double> _fadeCards;
   late final Animation<Offset> _slideHeader;
   late final Animation<Offset> _slideCards;
 
-  // Menu animation
   late final AnimationController _menuController;
   late final Animation<Offset> _menuSlide;
   bool _isMenuOpen = false;
 
-  // API state
   bool _loading = true;
   String? _error;
-  Map<String, dynamic> _counts = {}; // response.data
+  Map<String, dynamic> _counts = {};
 
-  // Teacher-specific data
   int _coursesAssigned = 0;
   int _studentsInCourses = 0;
   int _assignmentsDue = 0;
@@ -48,7 +44,6 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
   void initState() {
     super.initState();
 
-    // -------- MAIN PAGE ANIMATION --------
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
@@ -64,30 +59,22 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
       curve: const Interval(0.3, 1.0, curve: Curves.easeOut),
     );
 
-    _slideHeader = Tween<Offset>(
-      begin: const Offset(0, -0.04),
-      end: Offset.zero,
-    ).animate(_fadeHeader);
+    _slideHeader = Tween<Offset>(begin: const Offset(0, -0.04), end: Offset.zero)
+        .animate(_fadeHeader);
 
-    _slideCards = Tween<Offset>(
-      begin: const Offset(0, 0.06),
-      end: Offset.zero,
-    ).animate(_fadeCards);
+    _slideCards = Tween<Offset>(begin: const Offset(0, 0.06), end: Offset.zero)
+        .animate(_fadeCards);
 
     _controller.forward();
 
-    // -------- MENU ANIMATION --------
     _menuController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
 
     _menuSlide = Tween<Offset>(begin: const Offset(-1.0, 0.0), end: Offset.zero)
-        .animate(
-          CurvedAnimation(parent: _menuController, curve: Curves.easeOutCubic),
-        );
+        .animate(CurvedAnimation(parent: _menuController, curve: Curves.easeOutCubic));
 
-    // Fetch teacher-specific data
     Future.microtask(() async {
       await _fetchCounts();
     });
@@ -132,9 +119,7 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
     });
 
     try {
-      final uri = Uri.parse(
-        'YOUR_API_URL/courses-count',
-      ); // Replace with the real API
+      final uri = Uri.parse('YOUR_API_URL/courses-count'); // Use actual API URL
       final headers = await _authHeaders();
 
       final resp = await http
@@ -184,7 +169,6 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
     return headers;
   }
 
-  // ===================== MAIN BUILD =====================
   @override
   Widget build(BuildContext context) {
     const Color primaryColor = Color(0xFF2563EB);
@@ -194,8 +178,6 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
       body: SafeArea(
         child: Stack(
           children: [
-            // ================= SIDE MENU =================
-            // Dark background overlay
             GestureDetector(
               onTap: _isMenuOpen ? _toggleMenu : null,
               child: AnimatedContainer(
@@ -205,7 +187,6 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
                     : Colors.transparent,
               ),
             ),
-            // Slide-out Menu
             SlideTransition(
               position: _menuSlide,
               child: Align(
@@ -265,10 +246,8 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
               ),
             ),
 
-            // ================= MAIN CONTENT =================
             Column(
               children: [
-                // ---------- HEADER ----------
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
                   child: SlideTransition(
@@ -317,11 +296,9 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
                             ),
                           ),
                           IconButton(
-                            onPressed: _loading
-                                ? null
-                                : () async {
-                                    await _fetchCounts();
-                                  },
+                            onPressed: _loading ? null : () async {
+                              await _fetchCounts();
+                            },
                             icon: const Icon(Icons.refresh_rounded),
                             tooltip: 'Refresh',
                           ),
@@ -336,17 +313,13 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
                   ),
                 ),
 
-                // ============== BODY (SCROLLABLE) ==============
                 Expanded(
                   child: SlideTransition(
                     position: _slideCards,
                     child: FadeTransition(
                       opacity: _fadeCards,
                       child: SingleChildScrollView(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 8,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -354,10 +327,7 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
                               children: [
                                 const Text(
                                   'Teacher Dashboard',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                                 ),
                                 const Spacer(),
                                 if (_loading)
@@ -366,21 +336,15 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
                                       SizedBox(
                                         width: 16,
                                         height: 16,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                        ),
+                                        child: CircularProgressIndicator(strokeWidth: 2),
                                       ),
                                       SizedBox(width: 8),
-                                      Text(
-                                        'Loading...',
-                                        style: TextStyle(fontSize: 12),
-                                      ),
+                                      Text('Loading...', style: TextStyle(fontSize: 12)),
                                     ],
                                   ),
                               ],
                             ),
                             const SizedBox(height: 12),
-
                             if (_error != null) ...[
                               Container(
                                 width: double.infinity,
@@ -388,65 +352,50 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
                                 decoration: BoxDecoration(
                                   color: Colors.red.withOpacity(0.06),
                                   borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(
-                                    color: Colors.red.withOpacity(0.25),
-                                  ),
+                                  border: Border.all(color: Colors.red.withOpacity(0.25)),
                                 ),
                                 child: Text(
                                   _error!,
-                                  style: const TextStyle(
-                                    color: Colors.redAccent,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                                  style: const TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.w600),
                                 ),
                               ),
                               const SizedBox(height: 12),
                             ],
-
-                            // Row 1
+                            // Rows for stats
                             Row(
                               children: [
                                 Expanded(
-                                  child: _loading
-                                      ? _statSkeleton()
-                                      : _buildStatCard(
-                                          icon: Icons.class_rounded,
-                                          title: 'Courses Assigned',
-                                          value: _coursesAssigned.toString(),
-                                          subtitle: 'courses_assigned',
-                                          color: const Color(0xFF2563EB),
-                                        ),
+                                  child: _loading ? _statSkeleton() : _buildStatCard(
+                                    icon: Icons.class_rounded,
+                                    title: 'Courses Assigned',
+                                    value: _coursesAssigned.toString(),
+                                    subtitle: 'courses_assigned',
+                                    color: const Color(0xFF2563EB),
+                                  ),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
-                                  child: _loading
-                                      ? _statSkeleton()
-                                      : _buildStatCard(
-                                          icon: Icons.people_alt_rounded,
-                                          title: 'Students in Courses',
-                                          value: _studentsInCourses.toString(),
-                                          subtitle: 'students_in_courses',
-                                          color: const Color(0xFF22C55E),
-                                        ),
+                                  child: _loading ? _statSkeleton() : _buildStatCard(
+                                    icon: Icons.people_alt_rounded,
+                                    title: 'Students in Courses',
+                                    value: _studentsInCourses.toString(),
+                                    subtitle: 'students_in_courses',
+                                    color: const Color(0xFF22C55E),
+                                  ),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 12),
-
-                            // Row 2
                             Row(
                               children: [
                                 Expanded(
-                                  child: _loading
-                                      ? _statSkeleton()
-                                      : _buildStatCard(
-                                          icon: Icons.assignment_rounded,
-                                          title: 'Assignments Due',
-                                          value: _assignmentsDue.toString(),
-                                          subtitle: 'assignments_due',
-                                          color: const Color(0xFFF97316),
-                                        ),
+                                  child: _loading ? _statSkeleton() : _buildStatCard(
+                                    icon: Icons.assignment_rounded,
+                                    title: 'Assignments Due',
+                                    value: _assignmentsDue.toString(),
+                                    subtitle: 'assignments_due',
+                                    color: const Color(0xFFF97316),
+                                  ),
                                 ),
                               ],
                             ),
@@ -469,7 +418,6 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
       leading: Icon(icon, color: Colors.grey.shade700),
       title: Text(title),
       onTap: () {
-        // Add navigation logic here
         _toggleMenu();
       },
     );
@@ -481,9 +429,8 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
     required String value,
     required String subtitle,
     required Color color,
-    VoidCallback? onTap,
   }) {
-    final card = Container(
+    return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
@@ -511,42 +458,17 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
                 child: Icon(icon, color: color, size: 22),
               ),
               const Spacer(),
-              Icon(
-                Icons.more_horiz_rounded,
-                color: Colors.grey.shade400,
-                size: 20,
-              ),
+              Icon(Icons.more_horiz_rounded, color: Colors.grey.shade400, size: 20),
             ],
           ),
           const SizedBox(height: 10),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.black54,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
+          Text(title, style: const TextStyle(fontSize: 12, color: Colors.black54, fontWeight: FontWeight.w500)),
           const SizedBox(height: 4),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700),
-          ),
+          Text(value, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700)),
           const SizedBox(height: 4),
-          Text(
-            subtitle,
-            style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
-          ),
+          Text(subtitle, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
         ],
       ),
-    );
-
-    if (onTap == null) return card;
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(22),
-      onTap: onTap,
-      child: card,
     );
   }
 
@@ -587,9 +509,6 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
   }
 
   Widget _skeletonBox({double? w, double? h, BorderRadius? br}) {
-    // FIX: Removed FadeTransition referencing undefined _shimmerAnim
-    // Since the skeleton is already inside the _fadeCards animation in the build method,
-    // it will still fade in smoothly.
     return Container(
       width: w,
       height: h,
