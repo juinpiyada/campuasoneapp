@@ -98,12 +98,17 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen>
 
   void _logout() {
     // You can clear session data if any, using SharedPreferences or similar.
+    // Clear session (example with SharedPreferences)
+    // SharedPreferences.getInstance().then((prefs) {
+    //   prefs.clear(); // Clear session
+    // });
+
     if (_isMenuOpen) _toggleMenu();
 
     // Navigate to login page and remove all previous routes from the stack
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const LoginPage()),
-      (route) => false,
+      (route) => false,  // Remove all previous routes
     );
   }
 
