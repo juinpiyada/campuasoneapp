@@ -1,4 +1,3 @@
-// lib/student_dashboard.dart
 import 'package:flutter/material.dart';
 import 'login_page.dart';
 
@@ -98,8 +97,10 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen>
   }
 
   void _logout() {
+    // You can clear session data if any, using SharedPreferences or similar.
     if (_isMenuOpen) _toggleMenu();
 
+    // Navigate to login page and remove all previous routes from the stack
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const LoginPage()),
       (route) => false,
@@ -150,8 +151,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen>
                 child: Icon(icon, color: color, size: 22),
               ),
               const Spacer(),
-              Icon(Icons.more_horiz_rounded,
-                  color: Colors.grey.shade400, size: 20),
+              Icon(Icons.more_horiz_rounded, color: Colors.grey.shade400, size: 20),
             ],
           ),
           const SizedBox(height: 10),
@@ -295,7 +295,6 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen>
                     ),
                   ),
                 ),
-
                 // ---------- ROLE TAG ----------
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -335,9 +334,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen>
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 12),
-
                 // ============== BODY (SCROLLABLE) ==============
                 Expanded(
                   child: SlideTransition(
@@ -360,7 +357,6 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen>
                               ),
                             ),
                             const SizedBox(height: 12),
-
                             // ---- SMALL ROUNDED CARDS IN 2x2 GRID ----
                             Row(
                               children: [
@@ -409,9 +405,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen>
                                 ),
                               ],
                             ),
-
                             const SizedBox(height: 20),
-
                             const Text(
                               'Quick Actions',
                               style: TextStyle(
@@ -420,7 +414,6 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen>
                               ),
                             ),
                             const SizedBox(height: 10),
-
                             Wrap(
                               spacing: 10,
                               runSpacing: 10,
@@ -475,7 +468,6 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen>
                                 ),
                               ],
                             ),
-
                             const SizedBox(height: 24),
                             Text(
                               'Recent Activity',
@@ -486,7 +478,6 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen>
                               ),
                             ),
                             const SizedBox(height: 10),
-
                             Container(
                               decoration: BoxDecoration(
                                 color: Colors.white,
@@ -516,7 +507,6 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen>
                                 ],
                               ),
                             ),
-
                             const SizedBox(height: 32),
                           ],
                         ),
@@ -526,7 +516,6 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen>
                 ),
               ],
             ),
-
             // ================= HAMBURGER SLIDE MENU =================
             if (_isMenuOpen) ...[
               // Tap outside to close
@@ -575,18 +564,15 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen>
                           ],
                         ),
                         const SizedBox(height: 20),
-
                         ListTile(
                           leading: const Icon(Icons.home_rounded),
-                          title: const Text('Dashboard',
-                              style: TextStyle(fontSize: 14)),
+                          title: const Text('Dashboard', style: TextStyle(fontSize: 14)),
                           onTap: _toggleMenu,
                           contentPadding: EdgeInsets.zero,
                         ),
                         ListTile(
                           leading: const Icon(Icons.person_rounded),
-                          title: const Text('My Profile',
-                              style: TextStyle(fontSize: 14)),
+                          title: const Text('My Profile', style: TextStyle(fontSize: 14)),
                           onTap: () => _openFromMenu(
                             const _PlaceholderPage(title: 'My Profile'),
                           ),
@@ -594,8 +580,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen>
                         ),
                         ListTile(
                           leading: const Icon(Icons.fact_check_rounded),
-                          title: const Text('Attendance',
-                              style: TextStyle(fontSize: 14)),
+                          title: const Text('Attendance', style: TextStyle(fontSize: 14)),
                           onTap: () => _openFromMenu(
                             const _PlaceholderPage(title: 'Attendance'),
                           ),
@@ -603,8 +588,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen>
                         ),
                         ListTile(
                           leading: const Icon(Icons.calendar_month_rounded),
-                          title:
-                              const Text('Routine', style: TextStyle(fontSize: 14)),
+                          title: const Text('Routine', style: TextStyle(fontSize: 14)),
                           onTap: () => _openFromMenu(
                             const _PlaceholderPage(title: 'Routine'),
                           ),
@@ -612,8 +596,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen>
                         ),
                         ListTile(
                           leading: const Icon(Icons.receipt_long_rounded),
-                          title: const Text('Fees',
-                              style: TextStyle(fontSize: 14)),
+                          title: const Text('Fees', style: TextStyle(fontSize: 14)),
                           onTap: () => _openFromMenu(
                             const _PlaceholderPage(title: 'Fees'),
                           ),
@@ -621,8 +604,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen>
                         ),
                         ListTile(
                           leading: const Icon(Icons.assessment_rounded),
-                          title: const Text('Results',
-                              style: TextStyle(fontSize: 14)),
+                          title: const Text('Results', style: TextStyle(fontSize: 14)),
                           onTap: () => _openFromMenu(
                             const _PlaceholderPage(title: 'Results'),
                           ),
@@ -630,8 +612,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen>
                         ),
                         ListTile(
                           leading: const Icon(Icons.campaign_rounded),
-                          title:
-                              const Text('Notices', style: TextStyle(fontSize: 14)),
+                          title: const Text('Notices', style: TextStyle(fontSize: 14)),
                           onTap: () => _openFromMenu(
                             const _PlaceholderPage(title: 'Notices'),
                           ),
@@ -639,14 +620,11 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen>
                         ),
                         ListTile(
                           leading: const Icon(Icons.settings_rounded),
-                          title:
-                              const Text('Settings', style: TextStyle(fontSize: 14)),
+                          title: const Text('Settings', style: TextStyle(fontSize: 14)),
                           onTap: () => _toastComingSoon('Settings'),
                           contentPadding: EdgeInsets.zero,
                         ),
-
                         const Spacer(),
-
                         ListTile(
                           leading: const Icon(
                             Icons.logout_rounded,
@@ -787,8 +765,6 @@ class _ActivityRow extends StatelessWidget {
   }
 }
 
-/// Simple placeholder screens so this file compiles immediately.
-/// Replace these with your real screens later.
 class _PlaceholderPage extends StatelessWidget {
   final String title;
   const _PlaceholderPage({required this.title});
