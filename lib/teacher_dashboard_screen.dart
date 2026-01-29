@@ -1,10 +1,39 @@
-import 'dart:convert';
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'login_page.dart'; // Ensure that the import is correct.
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+import 'login_page.dart';
+
+/// ----------------- ENV + API CONFIG -----------------
+class AppConfig {
+  static String get baseUrl {
+    final v = dotenv.env['BASE_URL'] ?? '';
+    if (v.trim().isNotEmpty) return v.trim();
+    // fallback for local dev
+    return 'http://localhost:9090';
+  }
+}
+
+class Api {
+  static String get baseUrl => AppConfig.baseUrl;
+
+  static String join(String base, String path) {
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    final b = base.endsWith('/') ? base.substring(0, base.length - 1) : base;
+    final p = path.startsWith('/') ? path : '/$path';
+    return '$b$p';
+  }
+
+  static Uri uri(String path, {Map<String, String>? query}) {
+    final full = join(baseUrl, path);
+    final u = Uri.parse(full);
+    return (query == null || query.isEmpty) ? u : u.replace(queryParameters: query);
+  }
+}
 
 class TeacherDashboardScreen extends StatefulWidget {
   final String username;
@@ -59,11 +88,11 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
       curve: const Interval(0.3, 1.0, curve: Curves.easeOut),
     );
 
-    _slideHeader = Tween<Offset>(begin: const Offset(0, -0.04), end: Offset.zero)
-        .animate(_fadeHeader);
+    _slideHeader =
+        Tween<Offset>(begin: const Offset(0, -0.04), end: Offset.zero).animate(_fadeHeader);
 
-    _slideCards = Tween<Offset>(begin: const Offset(0, 0.06), end: Offset.zero)
-        .animate(_fadeCards);
+    _slideCards =
+        Tween<Offset>(begin: const Offset(0, 0.06), end: Offset.zero).animate(_fadeCards);
 
     _controller.forward();
 
@@ -72,8 +101,9 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
       duration: const Duration(milliseconds: 300),
     );
 
-    _menuSlide = Tween<Offset>(begin: const Offset(-1.0, 0.0), end: Offset.zero)
-        .animate(CurvedAnimation(parent: _menuController, curve: Curves.easeOutCubic));
+    _menuSlide = Tween<Offset>(begin: const Offset(-1.0, 0.0), end: Offset.zero).animate(
+      CurvedAnimation(parent: _menuController, curve: Curves.easeOutCubic),
+    );
 
     Future.microtask(() async {
       await _fetchCounts();
@@ -112,39 +142,41 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
     );
   }
 
-  Future<void> _fetchCounts() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  /// ----------------- Helpers -----------------
+  int _toInt(dynamic v, [int def = 0]) {
+    if (v == null) return def;
+    if (v is int) return v;
+    if (v is double) return v.toInt();
+    final s = v.toString().trim();
+    return int.tryParse(s) ?? def;
+  }
 
+  String _extractErrorMessage(String body) {
+    final trimmed = body.trim();
+    if (trimmed.isEmpty) return 'Unknown error';
     try {
-      final uri = Uri.parse('YOUR_API_URL/courses-count'); // Use actual API URL
-      final headers = await _authHeaders();
-
-      final resp = await http
-          .get(uri, headers: headers)
-          .timeout(const Duration(seconds: 20));
-
-      if (resp.statusCode == 200) {
-        final decoded = jsonDecode(resp.body);
-        if (decoded is Map) {
-          _counts = Map<String, dynamic>.from(decoded);
-          _coursesAssigned = _counts['courses_assigned'] ?? 0;
-          _studentsInCourses = _counts['students_in_courses'] ?? 0;
-          _assignmentsDue = _counts['assignments_due'] ?? 0;
-        }
-      } else {
-        _error = 'HTTP ${resp.statusCode}: ${resp.body}';
+      final decoded = jsonDecode(trimmed);
+      if (decoded is Map) {
+        // common patterns: {error:{message:...}} OR {message:...}
+        final m = Map<String, dynamic>.from(decoded);
+        final err = m['error'];
+        if (err is Map && err['message'] != null) return err['message'].toString();
+        if (m['message'] != null) return m['message'].toString();
       }
-    } on TimeoutException {
-      _error = 'Timeout: /courses-count did not respond in time.';
-    } catch (e) {
-      _error = 'Failed to load dashboard data: $e';
-    } finally {
-      if (!mounted) return;
-      setState(() => _loading = false);
-    }
+    } catch (_) {}
+    // fallback raw
+    return trimmed.length > 180 ? '${trimmed.substring(0, 180)}...' : trimmed;
+  }
+
+  Future<Map<String, dynamic>> _readSessionUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    final s = prefs.getString('sessionUser');
+    if (s == null || s.trim().isEmpty) return {};
+    try {
+      final decoded = jsonDecode(s);
+      if (decoded is Map) return Map<String, dynamic>.from(decoded);
+    } catch (_) {}
+    return {};
   }
 
   Future<Map<String, String>> _authHeaders() async {
@@ -169,6 +201,115 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
     return headers;
   }
 
+  /// ----------------- FIXED COUNTS FETCH -----------------
+  Future<void> _fetchCounts() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final headers = await _authHeaders();
+      final session = await _readSessionUser();
+
+      // Try to pass whatever identity your backend expects (email/userid/username)
+      final userId = (session['userid'] ??
+              session['userId'] ??
+              session['id'] ??
+              session['email'] ??
+              widget.username)
+          .toString();
+
+      final query = <String, String>{
+        'userid': userId,
+        'username': widget.username,
+        'role': widget.roleDescription,
+      };
+
+      // ✅ Try multiple possible routes (prevents 404 due to route name mismatch)
+      final candidates = <String>[
+        '/api/teacher/dashboard-counts',
+        '/api/teacher/courses-count',
+        '/api/teacher/courses-counts',
+        '/api/dashboard/teacher-counts',
+        '/api/courses-count',
+        '/courses-count',
+      ];
+
+      http.Response? lastResp;
+
+      for (final path in candidates) {
+        final uri = Api.uri(path, query: query);
+
+        final resp = await http.get(uri, headers: headers).timeout(
+              const Duration(seconds: 20),
+            );
+
+        lastResp = resp;
+
+        if (resp.statusCode == 200) {
+          final decoded = jsonDecode(resp.body);
+
+          if (decoded is Map) {
+            final m = Map<String, dynamic>.from(decoded);
+            _counts = m;
+
+            // Accept multiple key styles from backend
+            _coursesAssigned = _toInt(
+              m['courses_assigned'] ?? m['coursesAssigned'] ?? m['assigned_courses'],
+              0,
+            );
+            _studentsInCourses = _toInt(
+              m['students_in_courses'] ?? m['studentsInCourses'] ?? m['students_in_course'],
+              0,
+            );
+            _assignmentsDue = _toInt(
+              m['assignments_due'] ?? m['assignmentsDue'] ?? m['due_assignments'],
+              0,
+            );
+          }
+
+          // success, stop trying further endpoints
+          lastResp = null;
+          break;
+        }
+
+        // if not found, try next candidate automatically
+        if (resp.statusCode == 404) continue;
+
+        // if unauthorized, logout (optional)
+        if (resp.statusCode == 401) {
+          _error = 'Session expired (401). Please login again.';
+          await _logout();
+          return;
+        }
+
+        // other errors: keep and stop (usually backend issue)
+        _error = 'HTTP ${resp.statusCode}: ${_extractErrorMessage(resp.body)}';
+        lastResp = null;
+        break;
+      }
+
+      // if all endpoints failed with 404
+      if (_error == null && lastResp != null) {
+        _error = 'HTTP ${lastResp.statusCode}: ${_extractErrorMessage(lastResp.body)}';
+      }
+
+      // If all were 404 and lastResp is 404
+      if (_error == null && lastResp == null && _counts.isEmpty) {
+        _error =
+            'Dashboard API not found (404). Please create one endpoint in backend OR update the correct path in candidates.';
+      }
+    } on TimeoutException {
+      _error = 'Timeout: dashboard counts API did not respond in time.';
+    } catch (e) {
+      _error = 'Failed to load dashboard data: $e';
+    } finally {
+      if (!mounted) return;
+      setState(() => _loading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     const Color primaryColor = Color(0xFF2563EB);
@@ -182,9 +323,7 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
               onTap: _isMenuOpen ? _toggleMenu : null,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 300),
-                color: _isMenuOpen
-                    ? Colors.black.withOpacity(0.5)
-                    : Colors.transparent,
+                color: _isMenuOpen ? Colors.black.withOpacity(0.5) : Colors.transparent,
               ),
             ),
             SlideTransition(
@@ -201,27 +340,17 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
                       CircleAvatar(
                         radius: 35,
                         backgroundColor: primaryColor.withOpacity(0.1),
-                        child: Icon(
-                          Icons.person,
-                          size: 40,
-                          color: primaryColor,
-                        ),
+                        child: Icon(Icons.person, size: 40, color: primaryColor),
                       ),
                       const SizedBox(height: 16),
                       Text(
                         widget.username,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         widget.roleDescription,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade600,
-                        ),
+                        style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                       ),
                       const Divider(height: 32),
                       _buildMenuItem(Icons.dashboard_rounded, 'Dashboard'),
@@ -230,14 +359,8 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
                       _buildMenuItem(Icons.settings_rounded, 'Settings'),
                       const Spacer(),
                       ListTile(
-                        leading: const Icon(
-                          Icons.logout_rounded,
-                          color: Colors.red,
-                        ),
-                        title: const Text(
-                          'Logout',
-                          style: TextStyle(color: Colors.red),
-                        ),
+                        leading: const Icon(Icons.logout_rounded, color: Colors.red),
+                        title: const Text('Logout', style: TextStyle(color: Colors.red)),
                         onTap: _logout,
                       ),
                     ],
@@ -245,7 +368,6 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
                 ),
               ),
             ),
-
             Column(
               children: [
                 Padding(
@@ -287,18 +409,13 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
                               children: [
                                 Text(
                                   'Welcome, Teacher ${widget.username}',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.grey.shade600,
-                                  ),
+                                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
                                 ),
                               ],
                             ),
                           ),
                           IconButton(
-                            onPressed: _loading ? null : () async {
-                              await _fetchCounts();
-                            },
+                            onPressed: _loading ? null : () async => _fetchCounts(),
                             icon: const Icon(Icons.refresh_rounded),
                             tooltip: 'Refresh',
                           ),
@@ -312,7 +429,6 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
                     ),
                   ),
                 ),
-
                 Expanded(
                   child: SlideTransition(
                     position: _slideCards,
@@ -356,32 +472,39 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
                                 ),
                                 child: Text(
                                   _error!,
-                                  style: const TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.w600),
+                                  style: const TextStyle(
+                                    color: Colors.redAccent,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
                               const SizedBox(height: 12),
                             ],
-                            // Rows for stats
                             Row(
                               children: [
                                 Expanded(
-                                  child: _loading ? _statSkeleton() : _buildStatCard(
-                                    icon: Icons.class_rounded,
-                                    title: 'Courses Assigned',
-                                    value: _coursesAssigned.toString(),
-                                    subtitle: 'courses_assigned',
-                                    color: const Color(0xFF2563EB),
-                                  ),
+                                  child: _loading
+                                      ? _statSkeleton()
+                                      : _buildStatCard(
+                                          icon: Icons.class_rounded,
+                                          title: 'Courses Assigned',
+                                          value: _coursesAssigned.toString(),
+                                          subtitle: 'courses_assigned',
+                                          color: const Color(0xFF2563EB),
+                                        ),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
-                                  child: _loading ? _statSkeleton() : _buildStatCard(
-                                    icon: Icons.people_alt_rounded,
-                                    title: 'Students in Courses',
-                                    value: _studentsInCourses.toString(),
-                                    subtitle: 'students_in_courses',
-                                    color: const Color(0xFF22C55E),
-                                  ),
+                                  child: _loading
+                                      ? _statSkeleton()
+                                      : _buildStatCard(
+                                          icon: Icons.people_alt_rounded,
+                                          title: 'Students in Courses',
+                                          value: _studentsInCourses.toString(),
+                                          subtitle: 'students_in_courses',
+                                          color: const Color(0xFF22C55E),
+                                        ),
                                 ),
                               ],
                             ),
@@ -389,13 +512,15 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
                             Row(
                               children: [
                                 Expanded(
-                                  child: _loading ? _statSkeleton() : _buildStatCard(
-                                    icon: Icons.assignment_rounded,
-                                    title: 'Assignments Due',
-                                    value: _assignmentsDue.toString(),
-                                    subtitle: 'assignments_due',
-                                    color: const Color(0xFFF97316),
-                                  ),
+                                  child: _loading
+                                      ? _statSkeleton()
+                                      : _buildStatCard(
+                                          icon: Icons.assignment_rounded,
+                                          title: 'Assignments Due',
+                                          value: _assignmentsDue.toString(),
+                                          subtitle: 'assignments_due',
+                                          color: const Color(0xFFF97316),
+                                        ),
                                 ),
                               ],
                             ),
@@ -462,7 +587,10 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen>
             ],
           ),
           const SizedBox(height: 10),
-          Text(title, style: const TextStyle(fontSize: 12, color: Colors.black54, fontWeight: FontWeight.w500)),
+          Text(
+            title,
+            style: const TextStyle(fontSize: 12, color: Colors.black54, fontWeight: FontWeight.w500),
+          ),
           const SizedBox(height: 4),
           Text(value, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700)),
           const SizedBox(height: 4),
